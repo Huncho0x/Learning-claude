@@ -186,9 +186,9 @@ a {
   margin: 0;
   padding: 0;
   position: absolute;
-  top: 36px;
-  left: 70px;
-  right: 70px;
+  top: 37px;
+  left: 40px;
+  right: 40px;
   display: flex;
   justify-content: center;
 }
@@ -198,11 +198,9 @@ a {
   width: 62px;
   height: 430px;
   flex: none;
-  transition: width 0.55s cubic-bezier(0.3, 1.2, 0.5, 1);
 }
 
 .slot.is-active {
-  width: 214px;
   z-index: 5;
 }
 
@@ -213,7 +211,6 @@ a {
   border: 0;
   background: none;
   cursor: pointer;
-  perspective: 1100px;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -221,66 +218,59 @@ a {
   outline: none;
 }
 
-.garment:focus-visible .garment-svg {
-  filter: drop-shadow(0 0 0.5px var(--navy)) drop-shadow(0 12px 14px rgba(0, 0, 0, 0.2));
+.garment:focus-visible .face {
+  filter: drop-shadow(0 0 1px var(--navy)) drop-shadow(0 12px 14px rgba(0, 0, 0, 0.2));
 }
 
-.swing {
+/* the whole pair rocks on its hook */
+.hang {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 190px;
-  margin-left: -95px;
+  width: 230px;
+  margin-left: -115px;
   pointer-events: none;
   display: block;
-  transform-origin: 105px 4px;
-  animation: idle 6s ease-in-out infinite;
+  transform-origin: 50% 1px;
+  transform: rotate(var(--swing, 0deg));
+  perspective: 1000px;
 }
 
-.slot:nth-child(2n) .swing {
-  animation-duration: 7s;
-  animation-delay: -2s;
-}
-
-.slot:nth-child(3n) .swing {
-  animation-delay: -4s;
-}
-
-.turn {
+/* the hem trails behind the waistband as it swings */
+.cloth {
+  position: relative;
   display: block;
-  transform-origin: 55% 0;
-  transform: rotateY(var(--turn));
-  transition: transform 0.8s cubic-bezier(0.34, 1.35, 0.5, 1);
+  height: 354px;
+  transform-origin: 50% 0;
+  transform: skewX(var(--lag, 0deg));
+  transform-style: preserve-3d;
 }
 
-.garment-svg {
-  display: block;
-  width: 190px;
+.face {
+  position: absolute;
+  inset: 0;
+  width: 230px;
   height: auto;
-  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.16));
+  display: block;
   user-select: none;
+  transform-origin: 50% 0;
+  backface-visibility: hidden;
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.16));
 }
 
-.is-active .turn {
-  transform: rotateY(0deg);
+.face.side {
+  transform: rotateY(var(--side-turn, 0deg));
+  opacity: var(--side-show, 1);
 }
 
-.is-active .swing {
-  animation: swing 1.6s ease-out;
-}
-
-/* nudge the neighbours as the active pair swings out */
-.is-active + .slot .swing {
-  animation: nudge-right 1.2s ease-out;
-}
-
-.slot:has(+ .is-active) .swing {
-  animation: nudge-left 1.2s ease-out;
+.face.front {
+  transform: rotateY(var(--front-turn, 88deg));
+  opacity: var(--front-show, 0);
 }
 
 .label {
   position: absolute;
-  top: 400px;
+  top: 372px;
   left: 50%;
   transform: translate(-50%, 6px);
   white-space: nowrap;
@@ -300,73 +290,6 @@ a {
 .is-active .label {
   opacity: 1;
   transform: translate(-50%, 0);
-}
-
-@keyframes idle {
-  0%,
-  100% {
-    transform: rotate(0.5deg);
-  }
-  50% {
-    transform: rotate(-0.5deg);
-  }
-}
-
-@keyframes swing {
-  0% {
-    transform: rotate(0deg);
-  }
-  20% {
-    transform: rotate(4deg);
-  }
-  45% {
-    transform: rotate(-2.5deg);
-  }
-  70% {
-    transform: rotate(1.2deg);
-  }
-  100% {
-    transform: rotate(0deg);
-  }
-}
-
-@keyframes nudge-right {
-  0% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(-3deg);
-  }
-  60% {
-    transform: rotate(1.2deg);
-  }
-  100% {
-    transform: rotate(0deg);
-  }
-}
-
-@keyframes nudge-left {
-  0% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(3deg);
-  }
-  60% {
-    transform: rotate(-1.2deg);
-  }
-  100% {
-    transform: rotate(0deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .swing,
-  .is-active .swing,
-  .is-active + .slot .swing,
-  .slot:has(+ .is-active) .swing {
-    animation: none;
-  }
 }
 
 /* ---------- buttons ---------- */
@@ -570,9 +493,9 @@ a {
   background: var(--bg);
 }
 
-.detail-svg {
+.detail-img {
   width: 100%;
-  max-width: 260px;
+  max-width: 340px;
   height: auto;
   filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.18));
 }
@@ -803,7 +726,7 @@ a {
     gap: 16px;
   }
 
-  .detail-svg {
+  .detail-img {
     max-width: 180px;
   }
 

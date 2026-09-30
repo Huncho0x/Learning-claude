@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Jeans from "./Jeans";
 import { BRAND, PRODUCTS, SIZES, totalStock } from "../data";
 
-// Each pair hangs at a slightly different angle so the rail looks lived-in.
 const RAIL_WIDTH = 900;
 const RAIL_HEIGHT = 470;
-const RESTING_TURN = [74, 70, 78, 72, 76, 71, 75, 73, 77];
+const SLOT_REST = 62; // width of a pair hanging side-on
+const SLOT_OPEN = 250; // width once it has turned to face you
+
+const front = (p) => `/garments/${p.id}-front.webp`;
+const side = (p) => `/garments/${p.id}-side.webp`;
 
 export default function Store() {
   const [active, setActive] = useState(null); // pair swung to face you
@@ -106,6 +108,7 @@ function Rail({ active, setActive, onOpen }) {
   const wrapRef = useRef(null);
   const tap = useRef({ touch: false, wasActive: false });
   const [scale, setScale] = useState(1);
+  const { itemRefs, push } = useClothPhysics(active);
 
   // Shrink the rail to fit the screen. On phones it stops shrinking at a readable
   // size and you swipe sideways along the rail instead.
@@ -122,62 +125,189 @@ function Rail({ active, setActive, onOpen }) {
     return () => window.removeEventListener("resize", fit);
   }, []);
 
+  // Brushing the pointer across the rail knocks the pairs it passes, like running a hand along it.
+  const lastX = useRef(null);
+  function brush(e, i) {
+    if (e.pointerType !== "mouse") return;
+    const dx = lastX.current === null ? 0 : e.clientX - lastX.current;
+    lastX.current = e.clientX;
+    push(i, Math.max(-30, Math.min(30, dx * 1.2)));
+  }
+
   return (
     <div className="rail-wrap" ref={wrapRef}>
       <div className="rail-sizer" style={{ width: RAIL_WIDTH * scale, height: RAIL_HEIGHT * scale }}>
-      <div className="rail-scaler" style={{ transform: `scale(${scale})`, "--scale": scale }}>
-        <div className="rail-bar">
-          <span className="bracket left" />
-          <span className="pole" />
-          <span className="bracket right" />
-        </div>
-        <ul className="rack" onPointerLeave={(e) => e.pointerType === "mouse" && setActive(null)}>
-          {PRODUCTS.map((p, i) => {
-            const isActive = active === p.id;
-            const soldOut = totalStock(p) === 0;
-            return (
-              <li
-                key={p.id}
-                className={`slot${isActive ? " is-active" : ""}`}
-                style={{ "--turn": `${RESTING_TURN[i % RESTING_TURN.length]}deg` }}
-                onPointerEnter={(e) => e.pointerType === "mouse" && setActive(p.id)}
-              >
-                <button
-                  className="garment"
-                  aria-label={`${p.name}, ${p.colour}, ${BRAND.currency}${p.price}${soldOut ? ", sold out" : ""}`}
-                  onFocus={() => setActive(p.id)}
-                  onPointerDown={(e) => {
-                    tap.current = { touch: e.pointerType !== "mouse", wasActive: isActive };
-                  }}
-                  onClick={() => {
-                    // On touch screens the first tap swings it round, the second opens it.
-                    const { touch, wasActive } = tap.current;
-                    tap.current = { touch: false, wasActive: false };
-                    if (touch && !wasActive) {
-                      setActive(p.id);
-                    } else {
-                      onOpen(p);
-                    }
-                  }}
+        <div className="rail-scaler" style={{ transform: `scale(${scale})`, "--scale": scale }}>
+          <div className="rail-bar">
+            <span className="bracket left" />
+            <span className="pole" />
+            <span className="bracket right" />
+          </div>
+          <ul
+            className="rack"
+            onPointerLeave={(e) => {
+              lastX.current = null;
+              if (e.pointerType === "mouse") setActive(null);
+            }}
+          >
+            {PRODUCTS.map((p, i) => {
+              const isActive = active === p.id;
+              const soldOut = totalStock(p) === 0;
+              return (
+                <li
+                  key={p.id}
+                  ref={(el) => (itemRefs.current[i] = el)}
+                  className={`slot${isActive ? " is-active" : ""}`}
+                  onPointerEnter={(e) => e.pointerType === "mouse" && setActive(p.id)}
+                  onPointerMove={(e) => brush(e, i)}
                 >
-                  <span className="swing">
-                    <span className="turn">
-                      <Jeans product={p} className="garment-svg" />
+                  <button
+                    className="garment"
+                    aria-label={`${p.name}, ${p.colour}, ${BRAND.currency}${p.price}${soldOut ? ", sold out" : ""}`}
+                    onFocus={() => setActive(p.id)}
+                    onPointerDown={(e) => {
+                      tap.current = { touch: e.pointerType !== "mouse", wasActive: isActive };
+                    }}
+                    onClick={() => {
+                      // On touch screens the first tap turns it round, the second opens it.
+                      const { touch, wasActive } = tap.current;
+                      tap.current = { touch: false, wasActive: false };
+                      if (touch && !wasActive) {
+                        setActive(p.id);
+                      } else {
+                        onOpen(p);
+                      }
+                    }}
+                  >
+                    <span className="hang">
+                      <span className="cloth">
+                        <img className="face side" src={side(p)} alt="" draggable="false" />
+                        <img className="face front" src={front(p)} alt="" draggable="false" />
+                      </span>
                     </span>
+                  </button>
+                  <span className="label" aria-hidden={!isActive}>
+                    {p.name} — {p.colour}
+                    <em>
+                      {BRAND.currency}
+                      {p.price}
+                    </em>
                   </span>
-                </button>
-                <span className="label" aria-hidden={!isActive}>
-                  {p.name} — {p.colour}
-                  <em>{BRAND.currency}{p.price}</em>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
     </div>
   );
+}
+
+// A tiny spring simulation for every pair on the rail:
+//   turn  swings it from side-on (0) to facing you (1), overshooting a little like a real hanger
+//   swing is the whole pair rocking on its hook, slowly losing energy
+//   lag   is the hem trailing behind the waistband, which is what makes it read as fabric
+function useClothPhysics(active) {
+  const itemRefs = useRef([]);
+  const state = useRef(PRODUCTS.map(() => ({ t: 0, vt: 0, a: 0, va: 0, l: 0, vl: 0 })));
+  const frame = useRef(null);
+  const prevActive = useRef(null);
+  const calm = useRef(false);
+
+  function paint() {
+    state.current.forEach((s, i) => {
+      const el = itemRefs.current[i];
+      if (!el) return;
+      const t = Math.max(0, s.t);
+      el.style.width = `${SLOT_REST + (SLOT_OPEN - SLOT_REST) * Math.min(1, t)}px`;
+      el.style.setProperty("--swing", `${s.a.toFixed(3)}deg`);
+      el.style.setProperty("--lag", `${((s.l - s.a) * 0.7).toFixed(3)}deg`);
+      el.style.setProperty("--front-turn", `${((1 - s.t) * 88).toFixed(2)}deg`);
+      el.style.setProperty("--side-turn", `${(-s.t * 88).toFixed(2)}deg`);
+      el.style.setProperty("--front-show", smooth(0.12, 0.45, s.t).toFixed(3));
+      el.style.setProperty("--side-show", (1 - smooth(0.3, 0.6, s.t)).toFixed(3));
+    });
+  }
+
+  function step(dt) {
+    const target = PRODUCTS.map((p) => (p.id === prevActive.current ? 1 : 0));
+    let moving = false;
+    state.current.forEach((s, i) => {
+      // turn: stiff, a little bouncy
+      s.vt += (140 * (target[i] - s.t) - 13 * s.vt) * dt;
+      s.t += s.vt * dt;
+      // swing: soft pendulum, light damping so it rocks a few times
+      s.va += (-38 * s.a - 1.9 * s.va) * dt;
+      s.a += s.va * dt;
+      // hem follows the swing a beat late
+      s.vl += (70 * (s.a - s.l) - 7 * s.vl) * dt;
+      s.l += s.vl * dt;
+      if (Math.abs(s.vt) + Math.abs(target[i] - s.t) + Math.abs(s.va) + Math.abs(s.a) + Math.abs(s.vl) > 0.004) moving = true;
+      else {
+        s.t = target[i];
+        s.a = s.va = s.l = s.vl = s.vt = 0;
+      }
+    });
+    return moving;
+  }
+
+  function run() {
+    if (frame.current) return;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      // two half steps keep the springs stable on slow frames
+      const moving = step(dt / 2) | step(dt / 2);
+      paint();
+      frame.current = moving ? requestAnimationFrame(tick) : null;
+    };
+    frame.current = requestAnimationFrame(tick);
+  }
+
+  function push(i, amount) {
+    if (calm.current || !amount) return;
+    const s = state.current[i];
+    if (s) s.va += amount;
+    run();
+  }
+
+  // When a new pair is picked it turns out, swings, and knocks its neighbours.
+  useEffect(() => {
+    const from = PRODUCTS.findIndex((p) => p.id === prevActive.current);
+    const to = PRODUCTS.findIndex((p) => p.id === active);
+    prevActive.current = active;
+    if (to >= 0 && !calm.current) {
+      const dir = from >= 0 && from > to ? -1 : 1;
+      state.current[to].va += 42 * dir;
+      if (state.current[to - 1]) state.current[to - 1].va -= 16;
+      if (state.current[to + 1]) state.current[to + 1].va += 16;
+    }
+    run();
+  }, [active]);
+
+  // A draught every so often so the rail never looks frozen.
+  useEffect(() => {
+    calm.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    paint();
+    if (calm.current) return;
+    const id = setInterval(() => {
+      const i = Math.floor(Math.random() * PRODUCTS.length);
+      push(i, (Math.random() - 0.5) * 16);
+    }, 2200);
+    return () => {
+      clearInterval(id);
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    };
+  }, []);
+
+  return { itemRefs, push, run };
+}
+
+function smooth(a, b, x) {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
 }
 
 function ProductDetail({ product, onAdd }) {
@@ -187,10 +317,10 @@ function ProductDetail({ product, onAdd }) {
   return (
     <div className="detail">
       <div className="detail-art">
-        <Jeans product={product} className="detail-svg" />
+        <img src={front(product)} alt={`${product.name}, ${product.colour}`} className="detail-img" />
       </div>
       <div className="detail-info">
-        <p className="eyebrow">{product.kind === "jeans" ? "Denim" : "Trousers"}</p>
+        <p className="eyebrow">Denim</p>
         <h2>{product.name}</h2>
         <p className="muted">{product.colour}</p>
         <p className="price">{BRAND.currency}{product.price}</p>
