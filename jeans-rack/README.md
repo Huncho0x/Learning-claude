@@ -1,6 +1,6 @@
 # Rinse & Repeat — jeans on a rail
 
-A small shop page where jeans hang side-on on a chrome rail. Hover a pair and it turns round to face you, swinging on its hanger like real fabric; click it to pick a waist size and add it to your bag. "See availability" shows every size at a glance.
+A small shop page where jeans hang side-on on a chrome rail. Hover a pair and it turns round to face you, swinging on its hanger like real fabric; click it to pick a waist size and add it to your bag. The page is just the rail: no header, logo or banner.
 
 The pictures in `public/garments` are made from one real product photo (`scripts/source/jeans-photo.png`) by `scripts/build_garments.py`: it cuts the photo out, reshapes the legs for each fit, re-dyes it for each wash, hangs it on a clip hanger and makes a side view for the rail.
 

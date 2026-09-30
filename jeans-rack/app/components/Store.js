@@ -14,10 +14,8 @@ const side = (p) => `/garments/${p.id}-side.webp`;
 export default function Store() {
   const [active, setActive] = useState(null); // pair swung to face you
   const [viewing, setViewing] = useState(null); // pair opened in the detail panel
-  const [panel, setPanel] = useState(null); // "about" | "contact" | "availability" | "bag"
+  const [bagOpen, setBagOpen] = useState(false);
   const [bag, setBag] = useState([]);
-
-  const bagCount = bag.reduce((n, item) => n + item.qty, 0);
 
   function addToBag(product, size) {
     setBag((items) => {
@@ -28,7 +26,7 @@ export default function Store() {
       return [...items, { id: product.id, size, qty: 1 }];
     });
     setViewing(null);
-    setPanel("bag");
+    setBagOpen(true);
   }
 
   function removeFromBag(index) {
@@ -37,26 +35,9 @@ export default function Store() {
 
   return (
     <div className="site">
-      <header className="top">
-        <button className="navlink" onClick={() => setPanel("about")}>About</button>
-        <a className="logo" href="/" aria-label={`${BRAND.line1} ${BRAND.line2}, home`}>
-          <span>{BRAND.line1}</span>
-          <span className="logo-2">{BRAND.line2}</span>
-        </a>
-        <div className="nav-right">
-          <button className="navlink" onClick={() => setPanel("contact")}>Contact</button>
-          <button className="navlink bag-link" onClick={() => setPanel("bag")}>
-            Bag{bagCount > 0 && <span className="bag-count">{bagCount}</span>}
-          </button>
-        </div>
-      </header>
-
       <main className="stage">
         <Rail active={active} setActive={setActive} onOpen={setViewing} />
-        <button className="pill" onClick={() => setPanel("availability")}>See availability</button>
       </main>
-
-      <Ticker onClick={() => setPanel("contact")} />
 
       {viewing && (
         <Modal onClose={() => setViewing(null)} wide>
@@ -64,39 +45,8 @@ export default function Store() {
         </Modal>
       )}
 
-      {panel === "about" && (
-        <Modal onClose={() => setPanel(null)} title="About">
-          <p>
-            {BRAND.line1} {BRAND.line2} is a small denim shop. We buy a few good pairs at a time,
-            hang them on one rail, and restock when they are gone.
-          </p>
-          <p>Hover over a pair to swing it round. Click it to pick a size.</p>
-        </Modal>
-      )}
-
-      {panel === "contact" && (
-        <Modal onClose={() => setPanel(null)} title="Contact">
-          <p>
-            Questions about sizing, orders or restocks? Email us at{" "}
-            <a href={`mailto:${BRAND.email}`}>{BRAND.email}</a>.
-          </p>
-          <Newsletter />
-        </Modal>
-      )}
-
-      {panel === "availability" && (
-        <Modal onClose={() => setPanel(null)} title="Availability" wide>
-          <Availability
-            onPick={(p) => {
-              setPanel(null);
-              setViewing(p);
-            }}
-          />
-        </Modal>
-      )}
-
-      {panel === "bag" && (
-        <Modal onClose={() => setPanel(null)} title="Your bag">
+      {bagOpen && (
+        <Modal onClose={() => setBagOpen(false)} title="Your bag">
           <Bag items={bag} onRemove={removeFromBag} />
         </Modal>
       )}
@@ -355,45 +305,6 @@ function ProductDetail({ product, onAdd }) {
   );
 }
 
-function Availability({ onPick }) {
-  return (
-    <div className="table-scroll">
-      <table className="avail">
-        <thead>
-          <tr>
-            <th>Pair</th>
-            {SIZES.map((s) => (
-              <th key={s}>{s}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {PRODUCTS.map((p) => (
-            <tr key={p.id} onClick={() => onPick(p)}>
-              <td>
-                <span className="swatch" style={{ background: p.wash }} />
-                {p.name} <span className="muted">— {p.colour}</span>
-              </td>
-              {SIZES.map((s) => {
-                const n = p.stock[s];
-                const state = n === 0 ? "out" : n <= 2 ? "low" : "in";
-                return (
-                  <td key={s}>
-                    <span className={`dot ${state}`} title={n === 0 ? "Sold out" : `${n} left`} />
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="legend">
-        <span className="dot in" /> In stock <span className="dot low" /> Last few <span className="dot out" /> Sold out
-      </p>
-    </div>
-  );
-}
-
 function Bag({ items, onRemove }) {
   const [checkedOut, setCheckedOut] = useState(false);
   if (items.length === 0) return <p className="muted">Nothing in here yet. Pick a pair off the rail.</p>;
@@ -426,47 +337,6 @@ function Bag({ items, onRemove }) {
         <button className="pill solid" onClick={() => setCheckedOut(true)}>Checkout</button>
       )}
     </div>
-  );
-}
-
-function Newsletter() {
-  const [done, setDone] = useState(false);
-  if (done) return <p className="muted">You&apos;re on the list. New washes land in your inbox first.</p>;
-  return (
-    <form
-      className="newsletter"
-      onSubmit={(e) => {
-        e.preventDefault();
-        setDone(true);
-      }}
-    >
-      <label htmlFor="email">Newsletter</label>
-      <div>
-        <input id="email" type="email" required placeholder="you@example.com" />
-        <button className="pill solid" type="submit">Subscribe</button>
-      </div>
-    </form>
-  );
-}
-
-function Ticker({ onClick }) {
-  const phrases = ["New washes weekly", "Subscribe to our newsletter", "Free hemming on every pair"];
-  const row = Array.from({ length: 4 }, () => phrases).flat();
-  return (
-    <button className="ticker" onClick={onClick} aria-label="Subscribe to our newsletter">
-      <span className="ticker-track">
-        {[0, 1].map((copy) => (
-          <span className="ticker-copy" key={copy} aria-hidden={copy === 1}>
-            {row.map((t, i) => (
-              <span key={i}>
-                {t}
-                <b>•</b>
-              </span>
-            ))}
-          </span>
-        ))}
-      </span>
-    </button>
   );
 }
 
