@@ -1,7 +1,8 @@
 // Everything on the rail lives here. To change a pair, edit its entry.
 // `fit` picks the leg shape, `wash` is the fabric colour, `stitch` is the thread colour,
 // and `stock` is how many of each waist size are left (0 = sold out).
-// If you add a real photo later, put it in /public and add `image: "/my-photo.png"`.
+// `image` is the picture shown on the rail. The ones in /public/garments are rendered by
+// scripts/render_garments.py; swap in a real photo (a cut-out PNG or WebP) whenever you have one.
 
 export const BRAND = {
   line1: "Rinse &",
@@ -16,6 +17,7 @@ export const SIZES = [28, 30, 32, 34, 36];
 export const PRODUCTS = [
   {
     id: "straight-mid",
+    image: "/garments/straight-mid.webp",
     name: "Straight Leg",
     colour: "Mid Wash",
     price: 85,
@@ -28,6 +30,7 @@ export const PRODUCTS = [
   },
   {
     id: "wide-raw",
+    image: "/garments/wide-raw.webp",
     name: "Wide Leg",
     colour: "Raw Indigo",
     price: 110,
@@ -40,6 +43,7 @@ export const PRODUCTS = [
   },
   {
     id: "carpenter-ecru",
+    image: "/garments/carpenter-ecru.webp",
     name: "Carpenter",
     colour: "Ecru",
     price: 95,
@@ -52,6 +56,7 @@ export const PRODUCTS = [
   },
   {
     id: "baggy-black",
+    image: "/garments/baggy-black.webp",
     name: "Baggy",
     colour: "Washed Black",
     price: 90,
@@ -64,6 +69,7 @@ export const PRODUCTS = [
   },
   {
     id: "slim-light",
+    image: "/garments/slim-light.webp",
     name: "Slim Taper",
     colour: "Light Wash",
     price: 80,
@@ -76,6 +82,7 @@ export const PRODUCTS = [
   },
   {
     id: "flare-stone",
+    image: "/garments/flare-stone.webp",
     name: "Flare",
     colour: "Stone Wash",
     price: 98,
@@ -88,6 +95,7 @@ export const PRODUCTS = [
   },
   {
     id: "cargo-olive",
+    image: "/garments/cargo-olive.webp",
     name: "Cargo Trouser",
     colour: "Olive",
     price: 88,
@@ -100,6 +108,7 @@ export const PRODUCTS = [
   },
   {
     id: "pleat-charcoal",
+    image: "/garments/pleat-charcoal.webp",
     name: "Pleated Trouser",
     colour: "Charcoal",
     price: 120,
@@ -112,6 +121,7 @@ export const PRODUCTS = [
   },
   {
     id: "barrel-vintage",
+    image: "/garments/barrel-vintage.webp",
     name: "Barrel Leg",
     colour: "Vintage Blue",
     price: 105,
